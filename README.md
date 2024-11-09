@@ -54,7 +54,7 @@ This application automates the entire process of review scraping, categorization
 ### **Clone the Repository**
 
 ```bash
-git clone https://github.com/yourusername/dice_dreams_reviews.git
+git clone https://github.com/cybercinogen/dice_dreams_reviews.git
 cd dice_dreams_reviews
 ```
 
