@@ -6,3 +6,4 @@ python scheduler.py &
 
 # Start the Flask application and bind to Render's required PORT
 echo "Starting Flask app on port ${PORT:-10000}..."
+python app.py
