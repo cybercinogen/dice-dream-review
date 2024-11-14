@@ -4,6 +4,6 @@
 echo "Starting scheduler..."
 python scheduler.py &
 
-# Start the Flask application and bind to Render's required PORT
-echo "Starting Flask app on port ${PORT:-10000}..."
-python app.py
+# Start the Flask application with gunicorn
+echo "Starting Flask app with gunicorn on port ${PORT:-10000}..."
+gunicorn -w 4 -b 0.0.0.0:${PORT:-10000} app:app
