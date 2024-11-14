@@ -1,71 +1,83 @@
-# categorizer.py
-
-import os
-import warnings
-import logging
 import pandas as pd
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import torch
-from scipy.special import softmax
-from database import save_reviews
+import logging
+from database import Session, Review
+from transformers import pipeline
+import re
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
-)
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-# Suppress warnings
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-warnings.filterwarnings("ignore")
+# Load the on-device LLM classifier
+classifier = pipeline("text-classification", model="distilbert-base-uncased-finetuned-sst-2-english")
 
-# Model setup
-model_name = "cardiffnlp/twitter-roberta-base-sentiment"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSequenceClassification.from_pretrained(model_name)
-
-# Category Keywords
-category_keywords = {
-    "Bugs": ["bug", "issue", "error", "problem", "glitch", "fix"],
-    "Complaints": ["hate", "dislike", "bad", "terrible", "annoying", "poor"],
-    "Crashes": ["crash", "freeze", "unresponsive", "hang", "close unexpectedly"],
-    "Praises": ["love", "amazing", "great", "excellent", "awesome", "perfect", "good", "impressive", "satisfied"],
-    "Other": []
+# Define category keywords
+CATEGORY_KEYWORDS = {
+    "Bugs": ["bug", "issue", "problem", "glitch", "error"],
+    "Complaints": ["complaint", "not working", "disappointed", "hate", "bad"],
+    "Crashes": ["crash", "freeze", "unresponsive", "stuck"],
+    "Praises": ["love", "great", "awesome", "excellent", "best", "fantastic"],
+    "Other": []  # No keywords, fallback category
 }
 
-def classify_review(text):
-    try:
-        inputs = tokenizer(text, return_tensors="pt")
-        outputs = model(**inputs)
-        scores = softmax(outputs[0][0].detach().numpy())
-
-        if scores[2] > 0.5:
-            category = "Praises"
-        elif scores[0] > 0.6:
-            category = "Complaints"
-        else:
-            category = "Other"
-
-        for key, keywords in category_keywords.items():
-            if any(keyword.lower() in text.lower() for keyword in keywords):
-                category = key
-                break
-
-        return category
-    except Exception as e:
-        logging.error(f"Error in classification: {e}")
-        return "Other"
+def match_keywords(content):
+    """Categorize based on keywords."""
+    for category, keywords in CATEGORY_KEYWORDS.items():
+        if any(re.search(rf"\b{keyword}\b", content, re.IGNORECASE) for keyword in keywords):
+            return category
+    return None
 
 def categorize_reviews():
     try:
-        df = pd.read_csv("preprocessed_reviews.csv")
-        df['category'] = df['content'].apply(classify_review)
-        reviews_list = df.to_dict(orient='records')
-        save_reviews(reviews_list)
-        logging.info("Categorized reviews saved to the database.")
-    except FileNotFoundError as e:
-        logging.error("preprocessed_reviews.csv not found. Make sure preprocessing has run.")
+        # Load preprocessed_reviews.csv
+        df = pd.read_csv('preprocessed_reviews.csv')
+        
+        if 'date' not in df.columns:
+            logging.error("The 'date' column is missing in preprocessed_reviews.csv.")
+            return
+        
+        # Initialize database session
+        session = Session()
+
+        # Loop through each review and categorize it
+        for _, row in df.iterrows():
+            # Check for keyword-based category
+            category = match_keywords(row['content'])
+            
+            # If no keyword match, use LLM for categorization
+            if not category:
+                prediction = classifier(row['content'])[0]
+                label = prediction['label']
+                if label == "POSITIVE":
+                    category = "Praises"
+                elif label == "NEGATIVE":
+                    # Choose between Bugs, Complaints, Crashes, or Other
+                    category = "Complaints"  # Default fallback for negative reviews
+                    
+            # Final fallback category
+            if not category:
+                category = "Other"
+            
+            # Add categorized review to the database
+            review = Review(
+                review_id=row['review_id'],
+                user_name=row['user_name'],
+                rating=row['rating'],
+                content=row['content'],
+                date=pd.to_datetime(row['date']),
+                category=category
+            )
+            session.add(review)
+            logging.info(f"Categorized review {row['review_id']} as {category}")
+
+        # Commit all changes to the database
+        session.commit()
+        logging.info("All reviews categorized and saved to the database.")
+    
     except Exception as e:
         logging.error(f"Error during categorization: {e}")
+    
+    finally:
+        session.close()
 
 if __name__ == "__main__":
     categorize_reviews()

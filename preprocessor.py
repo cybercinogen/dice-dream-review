@@ -1,29 +1,26 @@
-# preprocessor.py
-
 import pandas as pd
-import re
 import logging
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
-)
-
-def preprocess_text(text):
-    text = text.lower()
-    text = re.sub(r'\s+', ' ', text)  # Remove extra spaces
-    text = re.sub(r'[^\w\s]', '', text)  # Remove punctuation
-    return text
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 def preprocess_reviews():
     try:
-        df = pd.read_csv("reviews.csv")
-        df['content'] = df['content'].apply(preprocess_text)
-        df.to_csv("preprocessed_reviews.csv", index=False)
+        # Load reviews.csv and check for required columns
+        df = pd.read_csv('reviews.csv')
+        required_columns = ['review_id', 'user_name', 'rating', 'content', 'date', 'category']
+        
+        # Check if all required columns are present
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            logging.error(f"Missing columns in reviews.csv: {missing_columns}")
+            return
+        
+        # Preprocess if columns are present
+        # Additional preprocessing steps here if required
+        
+        df.to_csv('preprocessed_reviews.csv', index=False)
         logging.info("Preprocessed reviews saved to preprocessed_reviews.csv.")
-    except FileNotFoundError as e:
-        logging.error("reviews.csv file not found. Make sure scraper has run.")
+
     except Exception as e:
         logging.error(f"Error during preprocessing: {e}")
 

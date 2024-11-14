@@ -44,30 +44,20 @@ def scheduled_job():
         logging.error(f"Error in scheduled job: {e}")
 
 def start_scheduler():
-    """Starts the scheduler to run `scheduled_job` every 3 minutes."""
+    """Starts the scheduler to run `scheduled_job` every 24 hours after the first run."""
     scheduler = BackgroundScheduler()
-    # Set the job to run every 3 minutes for testing purposes
-    scheduler.add_job(scheduled_job, 'interval', minutes=3)
+    
+    # Run the job immediately for the first time
+    logging.info("Running the job immediately for the first execution.")
+    scheduled_job()
+    
+    # Schedule the job to run every 24 hours after the first run
+    scheduler.add_job(scheduled_job, 'interval', days=1)
     scheduler.start()
-    logging.info("Scheduler started.")
+    logging.info("Scheduler started, next runs will occur every 24 hours.")
 
 if __name__ == '__main__':
-    # Run individual function tests
-    logging.info("Testing each function individually without the scheduler.")
-    
-    try:
-        scrape_reviews()
-        logging.info("Scrape test completed successfully.")
-        
-        preprocess_reviews()
-        logging.info("Preprocess test completed successfully.")
-        
-        categorize_reviews()
-        logging.info("Categorize test completed successfully.")
-    except Exception as e:
-        logging.error(f"Error during individual function tests: {e}")
-
-    # Start the scheduler for interval-based execution
+    # Start the scheduler
     start_scheduler()
     
     try:
