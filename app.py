@@ -1,5 +1,3 @@
-# app.py
-
 import os
 from flask import Flask, render_template, request
 from database import Session, Review
@@ -7,50 +5,59 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return "Hello, World!"
-
-# Set up port binding for Render
-port = int(os.environ.get("PORT", 10000))
-app.run(host="0.0.0.0", port=port, debug=True)
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    # Initialize database session
     session = Session()
+    
+    # Define categories and last 7 days for date selection
     categories = ["Bugs", "Complaints", "Crashes", "Praises", "Other"]
     dates = [(datetime.now() - timedelta(days=i)).date() for i in range(7)]
 
+    # Retrieve selected category and date from form
     selected_date = request.form.get('date')
     selected_category = request.form.get('category')
 
+    # Initialize variables to store reviews, count, and trend
     reviews = []
     count = 0
     trend = []
 
-    if selected_date and selected_category:
-        selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
-        # Fetch reviews for the selected date and category
-        reviews = session.query(Review).filter(
-            Review.date >= selected_date,
-            Review.date < selected_date + timedelta(days=1),
-            Review.category == selected_category
-        ).all()
-        count = len(reviews)
-
-        # Calculate trend over the last 7 days
-        for i in range(7):
-            day = selected_date - timedelta(days=i)
-            day_count = session.query(Review).filter(
-                Review.date >= day,
-                Review.date < day + timedelta(days=1),
+    try:
+        # Fetch reviews if a date and category are selected
+        if selected_date and selected_category:
+            selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+            
+            # Fetch reviews for the selected date and category
+            reviews = session.query(Review).filter(
+                Review.date >= selected_date,
+                Review.date < selected_date + timedelta(days=1),
                 Review.category == selected_category
-            ).count()
-            trend.append({'date': day.strftime('%Y-%m-%d'), 'count': day_count})
-        trend.reverse()
+            ).all()
+            count = len(reviews)
 
-    session.close()
-    return render_template('index.html', **locals())
+            # Calculate trend over the last 7 days for the selected category
+            for i in range(7):
+                day = selected_date - timedelta(days=i)
+                day_count = session.query(Review).filter(
+                    Review.date >= day,
+                    Review.date < day + timedelta(days=1),
+                    Review.category == selected_category
+                ).count()
+                trend.append({'date': day.strftime('%Y-%m-%d'), 'count': day_count})
+            trend.reverse()
+
+    except Exception as e:
+        print(f"Error fetching reviews: {e}")
+
+    finally:
+        # Close the session to avoid database connection issues
+        session.close()
+
+    # Render template with all local variables
+    return render_template('index.html', categories=categories, dates=dates, 
+                           selected_date=selected_date, selected_category=selected_category,
+                           reviews=reviews, count=count, trend=trend)
 
 if __name__ == "__main__":
     # Bind to Render's PORT environment variable or default to 10000
