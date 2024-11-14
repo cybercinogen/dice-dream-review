@@ -1,0 +1,46 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dice Dreams Reviews</title>
+</head>
+<body>
+    <h1>Dice Dreams Reviews Monitor</h1>
+    <form method="post">
+        <label for="date">Select Date:</label>
+        <select name="date" id="date">
+            {% for date in dates %}
+            <option value="{{ date }}" {% if date|string == selected_date|string %}selected{% endif %}>{{ date }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="category">Select Category:</label>
+        <select name="category" id="category">
+            {% for cat in categories %}
+            <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">View Reviews</button>
+    </form>
+
+    {% if selected_date and selected_category %}
+    <h2>{{ count }} {{ selected_category }} Reviews on {{ selected_date }}</h2>
+
+    <h3>Trend Over Last 7 Days</h3>
+    <ul>
+        {% for t in trend %}
+        <li>{{ t.date }}: {{ t.count }} reviews</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Reviews:</h3>
+    <ul>
+        {% for review in reviews %}
+        <li>{{ review.content }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</body>
+</html>
