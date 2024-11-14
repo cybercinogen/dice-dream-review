@@ -7,6 +7,14 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
+@app.route("/")
+def home():
+    return "Hello, World!"
+
+# Set up port binding for Render
+port = int(os.environ.get("PORT", 10000))
+app.run(host="0.0.0.0", port=port, debug=True)
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     session = Session()
