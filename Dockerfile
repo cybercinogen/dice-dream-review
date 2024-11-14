@@ -1,5 +1,3 @@
-# Dockerfile
-
 # Start with a base Python image
 FROM python:3.8
 
@@ -11,11 +9,14 @@ COPY .env /app/.env
 ENV PORT=10000
 
 # Copy requirements.txt and install dependencies
-COPY requirements.txt .
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code into the container
 COPY . .
+
+# Ensure start.sh is executable
+RUN chmod +x start.sh
 
 # Expose the port the app will run on
 EXPOSE 10000
