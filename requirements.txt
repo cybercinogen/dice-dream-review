@@ -1,0 +1,27 @@
+﻿# Web Framework
+Flask
+Flask-Cors
+
+# Task Scheduling
+APScheduler
+
+# Review Scraping
+google-play-scraper
+
+# NLP and Machine Learning
+transformers
+torch
+
+# Database Integration
+psycopg2-binary
+SQLAlchemy
+
+# Data Processing
+pandas
+
+# Additional Utilities
+tqdm
+urllib3
+python-dotenv
+gunicorn
+scipy
