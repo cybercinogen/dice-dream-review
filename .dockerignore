@@ -1,0 +1,29 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment files
+venv/
+*.egg-info/
+
+# Git files
+.git/
+.gitignore
+
+# Logs and temporary files
+*.log
+*.csv
+*.db
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Large or unnecessary files
+datasets/
+tests/
+node_modules/
+
+# Dockerignore itself (optional)
+.dockerignore
